@@ -1,0 +1,33 @@
+{
+  "name": "meshxt",
+  "version": "0.1.0",
+  "description": "MeshXT — Compression & error correction for Meshtastic. Extend your range by 2x.",
+  "main": "src/index.js",
+  "bin": {
+    "meshxt": "./bin/longshot.js"
+  },
+  "scripts": {
+    "test": "node test/test.js"
+  },
+  "keywords": [
+    "meshtastic",
+    "lora",
+    "compression",
+    "reed-solomon",
+    "error-correction",
+    "mesh-network",
+    "radio",
+    "ism-band",
+    "meshxt",
+    "868mhz"
+  ],
+  "author": "Darren Edwards",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DarrenEdwards111/MeshXT"
+  }
+}
