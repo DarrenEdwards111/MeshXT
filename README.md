@@ -247,14 +247,35 @@ MeshXT is optimised for the UK/EU 868 MHz ISM band:
 
 ## Meshtastic Integration
 
-MeshXT is designed as a preprocessing layer. To integrate with Meshtastic:
+MeshXT includes a **full C/C++ firmware module** that runs directly on your Meshtastic device (ESP32, nRF52). No computer or middleware needed — compression and FEC happen on the chip itself.
 
-1. **Before sending**: Run your message through `createPacket()` to get compressed + FEC-protected bytes
-2. **Send the raw bytes** via Meshtastic's binary message channel
-3. **On receive**: Run `parsePacket()` to decompress and error-correct
-4. Both ends need MeshXT — it's a codec, not a firmware mod
+### Firmware Plugin (recommended)
 
-For C/C++ firmware integration, the algorithms (Smaz compression, RS FEC, packet framing) can be ported directly — they use no external dependencies.
+Flash MeshXT directly into your Meshtastic device:
+
+1. Clone the Meshtastic firmware
+2. Copy MeshXT's `firmware/src/` files into `src/modules/`
+3. Register the module in `Modules.cpp`
+4. Build with PlatformIO and flash
+
+See **[firmware/README.md](firmware/README.md)** for detailed step-by-step instructions (including Windows/Mac/Linux commands, board selection, troubleshooting).
+
+Both sender and receiver need MeshXT flashed. Standard Meshtastic messages are unaffected — MeshXT uses a separate portnum so non-MeshXT nodes simply ignore the packets.
+
+**Firmware footprint:** ~5KB flash, ~1.3KB RAM.
+
+### Node.js API (for scripting & testing)
+
+You can also use MeshXT as a Node.js library for testing, benchmarking, or building custom integrations:
+
+```bash
+npm install meshxt
+```
+
+```javascript
+const { createPacket, parsePacket } = require('meshxt/src/packet');
+const result = createPacket('Hello MeshXT!', { compression: 'smaz', fec: 'low' });
+```
 
 ## Project Structure
 
