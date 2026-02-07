@@ -45,47 +45,57 @@ static inline uint8_t gf_div(uint8_t a, uint8_t b) {
 /**
  * Compute RS parity symbols.
  * Generator polynomial built on the fly to save RAM.
+ * g(x) = (x - alpha^0)(x - alpha^1)...(x - alpha^(nsym-1))
+ * Coefficients stored with gen[0] = x^nsym coefficient (always 1)
  */
 static void rs_encode(const uint8_t *msg, size_t msgLen, uint8_t *parity, uint8_t nsym) {
-    // Build generator polynomial g(x) = prod(x - alpha^i) for i=0..nsym-1
+    // Build generator polynomial
     uint8_t gen[65]; // max nsym = 64, so gen has nsym+1 coefficients
-    memset(gen, 0, nsym + 1);
+    memset(gen, 0, sizeof(gen));
     gen[0] = 1;
+    int genLen = 1;
 
     for (int i = 0; i < nsym; i++) {
-        // Multiply gen by (x - alpha^i) = (x + alpha^i) in GF(2^8)
-        for (int j = nsym; j > 0; j--) {
+        // Multiply gen by (x - alpha^i)
+        // New polynomial has genLen+1 coefficients
+        for (int j = genLen; j > 0; j--) {
             gen[j] = gen[j - 1] ^ gf_mul(gen[j], gf_exp[i]);
         }
         gen[0] = gf_mul(gen[0], gf_exp[i]);
+        genLen++;
     }
 
-    // Compute remainder of msg * x^nsym / gen
-    uint8_t feedback[256 + 64];
-    memcpy(feedback, msg, msgLen);
-    memset(feedback + msgLen, 0, nsym);
+    // Systematic encoding: compute remainder of msg(x) * x^nsym mod gen(x)
+    // Using feedback shift register
+    uint8_t reg[65];
+    memset(reg, 0, nsym);
 
     for (size_t i = 0; i < msgLen; i++) {
-        uint8_t coef = feedback[i];
-        if (coef != 0) {
-            for (int j = 1; j <= nsym; j++) {
-                feedback[i + j] ^= gf_mul(gen[j], coef);
-            }
+        uint8_t feedback = msg[i] ^ reg[0];
+        // Shift register
+        for (int j = 0; j < nsym - 1; j++) {
+            reg[j] = reg[j + 1] ^ gf_mul(gen[nsym - 1 - j], feedback);
         }
+        reg[nsym - 1] = gf_mul(gen[0], feedback);
     }
 
-    memcpy(parity, feedback + msgLen, nsym);
+    // Parity is the register contents
+    memcpy(parity, reg, nsym);
 }
 
 /**
  * Calculate syndromes.
+ * S_i = P(alpha^i) where P is the received polynomial.
+ * Using Horner's method: result = (...((msg[0] * x + msg[1]) * x + msg[2]) * x + ...)
  */
 static void rs_syndromes(const uint8_t *msg, size_t len, uint8_t nsym, uint8_t *synd) {
     for (int i = 0; i < nsym; i++) {
-        synd[i] = 0;
+        uint8_t val = 0;
+        uint8_t alpha_i = gf_exp[i];
         for (size_t j = 0; j < len; j++) {
-            synd[i] = gf_mul(synd[i], gf_exp[i]) ^ msg[j];
+            val = gf_mul(val, alpha_i) ^ msg[j];
         }
+        synd[i] = val;
     }
 }
 
