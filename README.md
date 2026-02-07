@@ -4,6 +4,30 @@
 
 MeshXT preprocesses your Meshtastic messages with intelligent compression and forward error correction, allowing you to send the same data using higher spreading factors for dramatically more range.
 
+## Installation
+
+### npm (recommended)
+
+```bash
+# Install globally for CLI use
+npm install -g meshxt
+
+# Or run directly with npx (no install needed)
+npx meshxt encode "Hello world"
+
+# Or add to your project as a dependency
+npm install meshxt
+```
+
+### From source
+
+```bash
+git clone https://github.com/DarrenEdwards111/MeshXT.git
+cd MeshXT
+npm test          # Run 70 tests
+npm link          # Make CLI available globally (optional)
+```
+
 ## How It Works
 
 ```
@@ -26,21 +50,131 @@ If compression cuts your message in half, you can bump up the spreading factor b
 - 🔧 **CLI Tool** — Encode, decode, benchmark, and estimate range from the command line
 - 🚫 **Zero Dependencies** — Pure Node.js, nothing to install
 
-## Quick Start
+## CLI Usage
 
 ```bash
-# Clone
-git clone https://github.com/DarrenEdwards111/MeshXT.git
-cd MeshXT
+# Encode a message (shows compression stats + range estimate)
+meshxt encode "Are you free for dinner Thursday?"
 
-# Run tests
-npm test
+# Encode with specific options
+meshxt encode "Need help" --fec high --compress smaz
 
-# CLI
-node bin/longshot.js encode "Are you free for dinner Thursday?"
-node bin/longshot.js bench "Need help at the old bridge, heading south"
-node bin/longshot.js range --sf 12 --bw 125 --power 14 --antenna 6
-node bin/longshot.js codebook
+# Decode a hex packet
+meshxt decode <hex_string>
+
+# Benchmark compression on a message
+meshxt bench "Need help at the old bridge, heading south"
+
+# Estimate range for given LoRa parameters
+meshxt range --sf 12 --bw 125 --power 14 --antenna 6
+
+# List all codebook templates
+meshxt codebook
+
+# Show help
+meshxt help
+```
+
+### Example Output
+
+```
+$ meshxt encode "Are you free for dinner Thursday?"
+
+📡 MeshXT Encode
+─────────────────────────────────
+Original:      33 bytes
+Compressed:    24 bytes (27.3% saved)
++ FEC (medium): +32 bytes
++ Header:      +2 bytes
+Total packet:  58 bytes / 237 max
+─────────────────────────────────
+Recommended:   SF12 BW500kHz CR8
+Est. range:    ~4.3km (2mi)
+─────────────────────────────────
+Hex: 1120...
+```
+
+```
+$ meshxt range --sf 12 --bw 125 --power 14 --antenna 6
+
+📡 MeshXT Range Estimate
+─────────────────────────────────
+SF:            12
+Bandwidth:     125 kHz
+TX Power:      14 dBm
+Antenna gain:  6 dBi
+─────────────────────────────────
+Est. range:    ~7.3km (4mi)
+Link budget:   158.5dB
+Sensitivity:   -135.5dBm
+```
+
+## API Usage (as a library)
+
+```javascript
+const meshxt = require('meshxt');
+
+// ── Compression ────────────────────────────
+const compressed = meshxt.compress('Are you free for dinner Thursday?');
+console.log(`Compressed: ${compressed.length} bytes`);
+
+const original = meshxt.decompress(compressed);
+console.log(`Decompressed: ${original}`);
+
+// ── Codebook (ultra-compact messages) ──────
+// Simple templates (1 byte)
+const sos = meshxt.codebook.encode('sos');           // 1 byte
+const ok = meshxt.codebook.encode('ok');             // 1 byte
+const omw = meshxt.codebook.encode('on_my_way');     // 1 byte
+
+// Parameterised templates
+const loc = meshxt.codebook.encode('location', { lat: 51.5074, lon: -3.1791 }); // 9 bytes
+const eta = meshxt.codebook.encode('eta', { minutes: 15 });                      // 2 bytes
+const weather = meshxt.codebook.encode('weather', { type: 'rain' });             // 2 bytes
+const battery = meshxt.codebook.encode('battery', { percent: 42 });              // 2 bytes
+
+// Decode
+const decoded = meshxt.codebook.decode(loc);
+console.log(decoded.text);   // "At location [51.507400, -3.179100]"
+console.log(decoded.params); // { lat: 51.5074, lon: -3.1791 }
+
+// List all 74 templates
+const templates = meshxt.codebook.listTemplates();
+
+// ── Forward Error Correction ───────────────
+const data = meshxt.compress('Important message');
+const protected_ = meshxt.fec.encode(data, 'medium');   // Add 32 parity bytes
+const recovered = meshxt.fec.decode(protected_, 'medium'); // Corrects up to 16 errors
+
+// FEC levels: 'low' (8 errors), 'medium' (16 errors), 'high' (32 errors)
+console.log(`Parity bytes: ${meshxt.fec.parityBytes('medium')}`);         // 32
+console.log(`Max corrections: ${meshxt.fec.maxCorrectableErrors('medium')}`); // 16
+
+// ── Full Packet (compression + FEC + framing) ─
+const { createPacket, parsePacket } = require('meshxt/src/packet');
+
+const result = createPacket('Hello from MeshXT!', {
+  compression: 'smaz',     // 'smaz', 'codebook', or 'none'
+  fec: 'low',              // 'low', 'medium', 'high', or 'none'
+});
+
+console.log(`Packet size: ${result.packet.length} bytes`);
+console.log(`Compression ratio: ${(result.stats.compressionRatio * 100).toFixed(1)}%`);
+
+const parsed = parsePacket(result.packet);
+console.log(`Message: ${parsed.message}`); // "Hello from MeshXT!"
+
+// ── Adaptive LoRa Parameter Selection ──────
+const rec = meshxt.adaptive.recommend(result.packet.length);
+console.log(`Recommended: SF${rec.sf} BW${rec.bw}kHz`);
+console.log(`Est. range: ${rec.rangeKm}km`);
+console.log(`Airtime: ${rec.airtimeMs}ms`);
+
+// Direct range estimation
+const range = meshxt.adaptive.rangeEstimate(12, 125, 14, 6);
+console.log(`Range: ${range.rangeKm}km`);
+console.log(`Link budget: ${range.linkBudget}dB`);
+console.log(`Sensitivity: ${range.sensitivity}dBm`);
 ```
 
 ## Range Improvement
@@ -104,39 +238,16 @@ Total: ≤ 237 bytes (Meshtastic max payload)
 | Medium | 32 | 16 byte errors | ~20% |
 | High | 64 | 32 byte errors | ~40% |
 
-## API Usage
+## UK 868 MHz ISM Band
 
-```javascript
-const meshxt = require('./src/index');
-
-// Compress a message
-const compressed = meshxt.compress('Are you free for dinner Thursday?');
-const original = meshxt.decompress(compressed);
-
-// Codebook (ultra-compact)
-const encoded = meshxt.codebook.encode('location', { lat: 51.5074, lon: -3.1791 });
-const decoded = meshxt.codebook.decode(encoded);
-
-// FEC
-const protected = meshxt.fec.encode(compressed, 'medium');
-const recovered = meshxt.fec.decode(protected, 'medium');
-
-// Full packet
-const { createPacket, parsePacket } = require('./src/packet');
-const { packet } = createPacket('Hello from MeshXT!', {
-  compression: 'smaz',
-  fec: 'low',
-});
-const result = parsePacket(packet);
-
-// Range estimation
-const range = meshxt.adaptive.rangeEstimate(12, 125, 14, 6);
-console.log(`Estimated range: ${range.rangeKm} km`);
-```
+MeshXT is optimised for the UK/EU 868 MHz ISM band:
+- Max ERP: 25 mW (14 dBm)
+- Duty cycle: 1% (g1 sub-band)
+- Adaptive SF selection respects duty cycle limits
 
 ## Meshtastic Integration
 
-MeshXT is designed as a preprocessing layer. To integrate with Meshtastic firmware:
+MeshXT is designed as a preprocessing layer. To integrate with Meshtastic:
 
 1. **Before sending**: Run your message through `createPacket()` to get compressed + FEC-protected bytes
 2. **Send the raw bytes** via Meshtastic's binary message channel
@@ -166,12 +277,10 @@ meshxt/
     └── test.js            # 70 tests, all passing
 ```
 
-## UK 868 MHz ISM Band
+## Requirements
 
-MeshXT is optimised for the UK/EU 868 MHz ISM band:
-- Max ERP: 25 mW (14 dBm)
-- Duty cycle: 1% (g1 sub-band)
-- Adaptive SF selection respects duty cycle limits
+- Node.js >= 16.0.0
+- No external dependencies
 
 ## License
 
@@ -179,8 +288,15 @@ Apache 2.0 — Copyright 2026 Darren Edwards
 
 ## Contributing
 
-PRs welcome. Key areas for contribution:
+PRs welcome! Key areas for contribution:
 - C/C++ port for direct Meshtastic firmware integration
 - Improved compression codebook for non-English languages
 - Adaptive FEC that adjusts based on link quality
 - Real-world range testing and validation
+- Python port for MicroPython on ESP32
+
+## Links
+
+- **npm**: https://www.npmjs.com/package/meshxt
+- **GitHub**: https://github.com/DarrenEdwards111/MeshXT
+- **Issues**: https://github.com/DarrenEdwards111/MeshXT/issues
