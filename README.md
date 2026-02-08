@@ -238,6 +238,35 @@ Total: ≤ 237 bytes (Meshtastic max payload)
 | Medium | 32 | 16 byte errors | ~20% |
 | High | 64 | 32 byte errors | ~40% |
 
+## Compile & Runtime Test Results
+
+```
+═══════════════════════════════════════════
+C++ Firmware Compile & Runtime Test Results
+═══════════════════════════════════════════
+
+Compression Test:
+  ✅ Compress:    33 bytes → 24 bytes (27% saved)
+  ✅ Decompress:  "Are you free for dinner Thursday?"
+  ✅ Roundtrip:   Perfect match
+
+FEC Test:
+  ✅ Encode:      24 bytes → 40 bytes (+16 parity)
+  ✅ Decode:      24 bytes (clean, no errors)
+  ✅ Roundtrip:   Perfect match
+
+Full Packet Test:
+  ✅ Create:      33 bytes → 42 bytes (fits in 237 max)
+  ✅ Parse:       "Are you free for dinner Thursday?"
+  ✅ Roundtrip:   Perfect match
+  ✅ Valid:        YES
+
+═══════════════════════════════════════════
+All tests passed — zero warnings, zero errors.
+Node.js: 70/70 tests passing.
+═══════════════════════════════════════════
+```
+
 ## UK 868 MHz ISM Band
 
 MeshXT is optimised for the UK/EU 868 MHz ISM band:
