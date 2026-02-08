@@ -393,7 +393,7 @@ firmware/src/
 | ESP32 (T-Beam, Heltec) | ✅ Supported |
 | nRF52840 (RAK4631) | ✅ Supported |
 | ESP32-S3 (T-Beam S3, Heltec V3) | ✅ Supported |
-| RP2040 | ⚠️ Untested |
+| RP2040 (Pico, rp2040-lora) | ✅ Supported (pure C/C++, no platform-specific code) |
 
 ### Troubleshooting
 
