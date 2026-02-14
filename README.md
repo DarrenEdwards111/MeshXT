@@ -179,6 +179,39 @@ console.log(`Link budget: ${range.linkBudget}dB`);
 console.log(`Sensitivity: ${range.sensitivity}dBm`);
 ```
 
+## Using with Meshtastic (Serial/BLE)
+
+If you're building a Node.js app that talks to a Meshtastic device over serial or BLE, here's how to integrate MeshXT:
+
+```javascript
+const meshxt = require('meshxt');
+const { SerialPort } = require('serialport'); // npm install serialport
+
+// Connect to your Meshtastic device
+const port = new SerialPort({ path: '/dev/ttyUSB0', baudRate: 115200 });
+
+// Sending: compress before sending via Meshtastic serial API
+function sendMessage(text) {
+  const packet = meshxt.createPacket(text, {
+    compression: 'smaz',
+    fec: 'low'
+  });
+  // Send packet.packet bytes via Meshtastic protobuf serial API
+  // The receiving end needs MeshXT to decode
+  console.log(`Sent "${text}" as ${packet.packet.length} bytes (was ${text.length})`);
+}
+
+// Receiving: decode incoming MeshXT packets
+function onReceive(data) {
+  const parsed = meshxt.parsePacket(data);
+  if (parsed.valid) {
+    console.log(`Received: ${parsed.message}`);
+  }
+}
+```
+
+> **Note:** Both sender and receiver need MeshXT. For device-to-device without a computer, use the [combined firmware](https://github.com/DarrenEdwards111/Meshtastic-MeshXT-Firmware) instead.
+
 ## Range Improvement
 
 | Configuration | Typical Range | Notes |
