@@ -1,6 +1,6 @@
 {
   "name": "meshxt",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "MeshXT — Compression & error correction for Meshtastic. Extend your range by 2x.",
   "main": "src/index.js",
   "bin": {

@@ -372,8 +372,16 @@ PRs welcome! Key areas for contribution:
 - Real-world range testing and validation
 - Python port for MicroPython on ESP32
 
+## Get in Touch
+
+- 🐛 **Bug reports** — [GitHub Issues](https://github.com/DarrenEdwards111/MeshXT/issues)
+- 💡 **Ideas, questions & development discussion** — [GitHub Discussions](https://github.com/DarrenEdwards111/MeshXT/discussions)
+- 📧 **Contact** — mikoshiuk@gmail.com
+
 ## Links
 
 - **npm**: https://www.npmjs.com/package/meshxt
 - **GitHub**: https://github.com/DarrenEdwards111/MeshXT
+- **Firmware**: https://github.com/DarrenEdwards111/Meshtastic-MeshXT-Firmware
 - **Issues**: https://github.com/DarrenEdwards111/MeshXT/issues
+- **Discussions**: https://github.com/DarrenEdwards111/MeshXT/discussions
