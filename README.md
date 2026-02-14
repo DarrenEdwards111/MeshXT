@@ -4,9 +4,11 @@
 
 MeshXT preprocesses your Meshtastic messages with intelligent compression and forward error correction, allowing you to send the same data using higher spreading factors for dramatically more range.
 
+> **🔧 Want to flash your device directly?** This is the JavaScript developer library. For a ready-to-flash firmware, see [Meshtastic-MeshXT-Firmware](https://github.com/DarrenEdwards111/Meshtastic-MeshXT-Firmware) — plug in USB, run 4 commands, done.
+
 ## Installation
 
-### npm (recommended)
+### npm (for developers)
 
 ```bash
 # Install globally for CLI use
