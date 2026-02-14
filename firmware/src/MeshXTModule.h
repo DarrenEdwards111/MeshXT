@@ -39,6 +39,18 @@ class MeshXTModule : public MeshModule
      */
     bool sendCompressed(const char *text, uint32_t dest, uint8_t channel = 0);
 
+    /**
+     * Intercept an outgoing TEXT_MESSAGE_APP packet from the phone/app.
+     * Rewrites it in-place as a MeshXT-compressed packet.
+     *
+     * Called from Router::send() before transmission.
+     *
+     * @param mp  Packet to potentially intercept (modified in-place)
+     * @return    true if packet was rewritten as MeshXT (send the modified version)
+     *            false if not intercepted (send as normal text)
+     */
+    bool interceptTextMessage(meshtastic_MeshPacket *mp);
+
   protected:
     virtual ProcessMessage handleReceived(const meshtastic_MeshPacket &mp) override;
     virtual bool wantPacket(const meshtastic_MeshPacket *p) override;
@@ -46,6 +58,7 @@ class MeshXTModule : public MeshModule
   private:
     uint8_t compType;
     uint8_t fecLevel;
+    bool enabled;
 };
 
 extern MeshXTModule *meshXTModule;

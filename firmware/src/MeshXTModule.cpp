@@ -24,6 +24,7 @@ MeshXTModule::MeshXTModule()
     // Default settings
     compType = MESHXT_COMP_SMAZ;
     fecLevel = MESHXT_FEC_LOW_CODE;
+    enabled = true;
 
     // Initialise FEC tables
     meshxt_fec_init();
@@ -62,6 +63,54 @@ bool MeshXTModule::sendCompressed(const char *text, uint32_t dest, uint8_t chann
     return true;
 }
 
+bool MeshXTModule::interceptTextMessage(meshtastic_MeshPacket *mp)
+{
+    // Called from Router before sending — intercepts outgoing TEXT_MESSAGE_APP
+    // packets from the phone/app and re-encodes them as MeshXT packets.
+    //
+    // Returns true if the packet was intercepted (caller should NOT send original).
+    // Returns false if MeshXT is disabled or compression failed (send as normal).
+
+    if (!enabled) return false;
+    if (!mp) return false;
+    if (mp->decoded.portnum != meshtastic_PortNum_TEXT_MESSAGE_APP) return false;
+
+    // Only intercept locally-originated packets (from phone/CLI, not relayed)
+    if (mp->from != 0 && mp->from != nodeDB->getNodeNum()) return false;
+
+    // Extract the text
+    const char *text = (const char *)mp->decoded.payload.bytes;
+    size_t textLen = mp->decoded.payload.size;
+
+    if (textLen == 0 || textLen > 237) return false; // Too short or too long
+
+    // Compress and FEC-encode
+    uint8_t packetBuf[MESHXT_MAX_PACKET_SIZE];
+    int packetLen = meshxt_create_packet(text, packetBuf, compType, fecLevel);
+
+    if (packetLen < 0) {
+        LOG_WARN("MeshXT: Compression failed, sending as plain text");
+        return false; // Fall back to normal send
+    }
+
+    // Only use MeshXT if we actually saved space (or if FEC is worth the overhead)
+    if (packetLen >= (int)textLen && fecLevel == MESHXT_FEC_NONE_CODE) {
+        LOG_INFO("MeshXT: No size benefit, sending as plain text");
+        return false;
+    }
+
+    LOG_INFO("MeshXT: TX intercepted %d bytes → %d bytes (%.0f%% saved)",
+             textLen, packetLen,
+             100.0 * (1.0 - (double)packetLen / textLen));
+
+    // Rewrite the packet in-place: change portnum and payload
+    mp->decoded.portnum = MESHXT_PORTNUM;
+    mp->decoded.payload.size = packetLen;
+    memcpy(mp->decoded.payload.bytes, packetBuf, packetLen);
+
+    return true; // Packet modified — send the MeshXT version
+}
+
 ProcessMessage MeshXTModule::handleReceived(const meshtastic_MeshPacket &mp)
 {
     auto &p = mp.decoded;
@@ -88,7 +137,7 @@ ProcessMessage MeshXTModule::handleReceived(const meshtastic_MeshPacket &mp)
         textMp->decoded.payload.size = result.messageLen;
         memcpy(textMp->decoded.payload.bytes, result.message, result.messageLen);
 
-        // Notify the phone/app via BLE/serial (this is what the app listens for)
+        // Notify the phone/app via BLE/serial
         service->handleFromRadio(textMp);
     }
 
@@ -101,7 +150,7 @@ ProcessMessage MeshXTModule::handleReceived(const meshtastic_MeshPacket &mp)
 
     powerFSM.trigger(EVENT_RECEIVED_MSG);
 
-    return ProcessMessage::STOP; // Stop processing — we've handled it
+    return ProcessMessage::STOP;
 }
 
 bool MeshXTModule::wantPacket(const meshtastic_MeshPacket *p)

@@ -1,0 +1,23 @@
+--- a/src/mesh/Router.cpp
++++ b/src/mesh/Router.cpp
+@@ -1,6 +1,8 @@
+ #include "Router.h"
+ #include "configuration.h"
+ #include "main.h"
++#include "modules/MeshXTModule.h"
++extern MeshXTModule *meshXTModule;
+ 
+ /**
+  * MeshXT hook: Before sending any packet, check if MeshXT wants to
+@@ -XX,6 +XX,12 @@ ErrorCode Router::send(meshtastic_MeshPacket *p)
+ {
+     // ... existing code ...
+ 
++    // MeshXT: intercept outgoing text messages and compress them
++    if (meshXTModule && p->decoded.portnum == meshtastic_PortNum_TEXT_MESSAGE_APP) {
++        meshXTModule->interceptTextMessage(p);
++        // If intercepted, portnum is now PRIVATE_APP with compressed payload
++    }
++
+     // ... rest of existing send logic ...
+ }
