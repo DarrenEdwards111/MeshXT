@@ -77,20 +77,31 @@ ProcessMessage MeshXTModule::handleReceived(const meshtastic_MeshPacket &mp)
     LOG_INFO("MeshXT: RX from=0x%0x, %d bytes → \"%s\" (%d chars)",
              mp.from, p.payload.size, result.message, result.messageLen);
 
-    // Store as if it were a regular text message so it shows on screen
-    // Create a modified packet with the decoded text
-    meshtastic_MeshPacket textMp = mp;
-    textMp.decoded.portnum = meshtastic_PortNum_TEXT_MESSAGE_APP;
-    textMp.decoded.payload.size = result.messageLen;
-    memcpy(textMp.decoded.payload.bytes, result.message, result.messageLen);
+    // Re-inject as a standard TEXT_MESSAGE_APP packet so it:
+    // 1. Shows on the device screen
+    // 2. Gets sent to the Meshtastic app via BLE/serial
+    // 3. Appears in message history
+    meshtastic_MeshPacket *textMp = router->allocForSending();
+    if (textMp) {
+        *textMp = mp; // Copy original metadata (from, to, channel, hop count, etc.)
+        textMp->decoded.portnum = meshtastic_PortNum_TEXT_MESSAGE_APP;
+        textMp->decoded.payload.size = result.messageLen;
+        memcpy(textMp->decoded.payload.bytes, result.message, result.messageLen);
 
-    // Store in device state for display
-    devicestate.rx_text_message = textMp;
+        // Notify the phone/app via BLE/serial (this is what the app listens for)
+        service->handleFromRadio(textMp);
+    }
+
+    // Also store for on-device screen display
+    devicestate.rx_text_message = mp;
+    devicestate.rx_text_message.decoded.portnum = meshtastic_PortNum_TEXT_MESSAGE_APP;
+    devicestate.rx_text_message.decoded.payload.size = result.messageLen;
+    memcpy(devicestate.rx_text_message.decoded.payload.bytes, result.message, result.messageLen);
     devicestate.has_rx_text_message = true;
 
     powerFSM.trigger(EVENT_RECEIVED_MSG);
 
-    return ProcessMessage::CONTINUE;
+    return ProcessMessage::STOP; // Stop processing — we've handled it
 }
 
 bool MeshXTModule::wantPacket(const meshtastic_MeshPacket *p)
