@@ -278,135 +278,27 @@ MeshXT is optimised for the UK/EU 868 MHz ISM band:
 
 ## Flashing MeshXT to Your Meshtastic Device
 
-MeshXT includes a **full C/C++ firmware module** that runs directly on your Meshtastic device (ESP32, nRF52). No computer or middleware needed after flashing — compression and FEC happen on the chip itself.
+> **⚡ Use the combined firmware repo:** [Meshtastic-MeshXT-Firmware](https://github.com/DarrenEdwards111/Meshtastic-MeshXT-Firmware)
+>
+> MeshXT is a Meshtastic module — it needs the full Meshtastic firmware to run. You can't flash MeshXT on its own. The combined firmware repo gives you **Meshtastic + MeshXT in one flash**.
 
-**Firmware footprint:** ~5KB flash, ~1.3KB RAM.
-
-### Prerequisites
-
-1. **A Meshtastic-compatible device** — T-Beam, Heltec V3, RAK4631, or similar
-2. **A USB cable** — to connect your device to your computer
-3. **VS Code** — download from https://code.visualstudio.com/
-4. **PlatformIO extension** — install in VS Code: Extensions (Ctrl+Shift+X) → Search "PlatformIO" → Install
-5. **Git** — download from https://git-scm.com/downloads
-
-### Step 1: Clone the Meshtastic firmware
+### Heltec V3 (4 commands):
 
 ```bash
-git clone https://github.com/meshtastic/firmware.git
-cd firmware
-git submodule update --init --recursive
+pip install platformio
+git clone https://github.com/DarrenEdwards111/Meshtastic-MeshXT-Firmware.git
+cd Meshtastic-MeshXT-Firmware
+bash scripts/setup.sh
+bash scripts/flash.sh heltec-v3
 ```
 
-### Step 2: Clone MeshXT
+### Other devices:
 
-In a separate folder:
+T-Beam, RAK4631, T-Deck, T-Echo — see the [full device list and instructions](https://github.com/DarrenEdwards111/Meshtastic-MeshXT-Firmware#quick-start--other-devices).
 
-```bash
-git clone https://github.com/DarrenEdwards111/MeshXT.git
-```
+### C/C++ source files
 
-### Step 3: Copy MeshXT files into Meshtastic
-
-**Linux/Mac:**
-```bash
-cp MeshXT/firmware/src/MeshXT*.h firmware/src/modules/
-cp MeshXT/firmware/src/MeshXT*.cpp firmware/src/modules/
-```
-
-**Windows:**
-```cmd
-copy MeshXT\firmware\src\MeshXT*.h firmware\src\modules\
-copy MeshXT\firmware\src\MeshXT*.cpp firmware\src\modules\
-```
-
-### Step 4: Register the module
-
-Edit `firmware/src/modules/Modules.cpp`:
-
-**At the top**, add with the other includes:
-```cpp
-#include "MeshXTModule.h"
-```
-
-**Inside `setupModules()`**, add:
-```cpp
-meshXTModule = new MeshXTModule();
-```
-
-### Step 5: Select your board and build
-
-| Device | PlatformIO Environment |
-|--------|----------------------|
-| LILYGO T-Beam | `tbeam` |
-| LILYGO T-Beam S3 | `tbeam-s3-core` |
-| Heltec V3 | `heltec-v3` |
-| Heltec Wireless Tracker | `heltec-wireless-tracker` |
-| RAK WisBlock (RAK4631) | `rak4631` |
-| Station G2 | `station-g2` |
-
-```bash
-# Replace 'tbeam' with your board from the table above
-pio run -e tbeam
-```
-
-Or in VS Code: click the ✓ (checkmark) in the PlatformIO toolbar.
-
-### Step 6: Flash your device
-
-Connect your device via USB, then:
-
-```bash
-pio run -e tbeam --target upload
-```
-
-Or in VS Code: click the → (arrow) in the PlatformIO toolbar.
-
-### Step 7: Verify
-
-Check the serial monitor (115200 baud) for MeshXT log lines:
-
-```
-MeshXT: TX 33 bytes → 42 bytes (27% saved)
-MeshXT: RX from=0x12ab, 42 bytes → "Hello from MeshXT!" (18 chars)
-```
-
-### Important Notes
-
-- **Both devices need MeshXT** — sender AND receiver must have it flashed
-- **Standard messages still work** — MeshXT uses a separate channel (PRIVATE_APP portnum), so normal Meshtastic messages are unaffected
-- **Non-MeshXT nodes** simply ignore MeshXT packets
-- **To revert** — reflash stock Meshtastic via https://flasher.meshtastic.org/
-
-### Firmware Files
-
-```
-firmware/src/
-├── MeshXTCompress.h/cpp   — Smaz-style text compression (~3KB flash, 254B RAM)
-├── MeshXTFEC.h/cpp        — Reed-Solomon FEC over GF(2^8) (~1KB flash, 768B RAM)
-├── MeshXTPacket.h/cpp     — Packet framing with header + payload + FEC (~1KB flash)
-└── MeshXTModule.h/cpp     — Meshtastic module wrapper
-```
-
-### Compatibility
-
-| Platform | Status |
-|----------|--------|
-| ESP32 (T-Beam, Heltec) | ✅ Supported |
-| nRF52840 (RAK4631) | ✅ Supported |
-| ESP32-S3 (T-Beam S3, Heltec V3) | ✅ Supported |
-| RP2040 (Pico, rp2040-lora) | ✅ Supported (pure C/C++, no platform-specific code) |
-
-### Troubleshooting
-
-| Problem | Solution |
-|---------|----------|
-| Build fails with "No such file" | Check all 8 MeshXT files are in `src/modules/` |
-| Build fails with "undefined reference" | Check `Modules.cpp` has the include and `new MeshXTModule()` |
-| Device not detected | Install CH340/CP2102 USB drivers |
-| Upload fails | Hold BOOT button on device while uploading |
-| No MeshXT log messages | Check serial monitor at 115200 baud |
-| Other node can't read messages | Both nodes need MeshXT flashed |
+This repo contains the MeshXT module source code in `firmware/src/` (8 files, ~967 lines). These are the files that get integrated into the Meshtastic firmware build. For manual integration details, see the [firmware repo](https://github.com/DarrenEdwards111/Meshtastic-MeshXT-Firmware#manual-install).
 
 ## Project Structure
 
