@@ -21,7 +21,7 @@
     "meshxt",
     "868mhz"
   ],
-  "author": "Darren Edwards",
+  "author": "Mikoshi Ltd",
   "license": "Apache-2.0",
   "engines": {
     "node": ">=16.0.0"

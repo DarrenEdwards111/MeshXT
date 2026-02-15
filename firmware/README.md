@@ -326,4 +326,4 @@ If all three `.o` files are produced with no errors, the code is ready for Mesht
 
 ## License
 
-Apache 2.0 — Copyright 2026 Darren Edwards
+Apache 2.0 — Copyright 2026 Mikoshi Ltd
