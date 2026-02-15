@@ -1,4 +1,8 @@
-# 📡 MeshXT — Meshtastic Extended
+<p align="center">
+  <img src="https://raw.githubusercontent.com/DarrenEdwards111/MeshXT/main/logo.jpg" alt="MeshXT" width="200">
+</p>
+
+# MeshXT — Meshtastic Extended
 
 **Compression & error correction for Meshtastic — extend your range by 2x**
 
