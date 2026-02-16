@@ -365,7 +365,7 @@ meshxt/
 
 ## License
 
-Apache 2.0 — Copyright 2026 Darren Edwards
+Apache 2.0 — Copyright 2026 Mikoshi Ltd
 
 ## Contributing
 
